@@ -32,7 +32,7 @@ import scraper.ScrapeWorker;
  * 
  * @author sean
  */
-public class MainFrame extends JFrame implements ActionListener, ItemListener, ButtonEnabler
+public class MainFrame extends JFrame implements ActionListener, ItemListener, ScrapeGUIInteractor
 {
 	private static final long serialVersionUID = 1L;
 	
@@ -390,7 +390,6 @@ public class MainFrame extends JFrame implements ActionListener, ItemListener, B
 					"About",
 					JOptionPane.INFORMATION_MESSAGE
 			);
-			
 		}
 		else if(command.equals("grid reference system selected"))
 		{
@@ -564,6 +563,17 @@ public class MainFrame extends JFrame implements ActionListener, ItemListener, B
 	{
 		createButton.setEnabled(false);
 		stopButton.setEnabled(true);
+	}
+	
+	@Override
+	public void messageUnableToConnect()
+	{
+		// Show about box
+		JOptionPane.showMessageDialog(this, 
+				"Unable to connect to Ordnance Survey website. This could be due to an invalid API key or if this program is unable to access the web.",
+				"Unable to connect",
+				JOptionPane.ERROR_MESSAGE
+		);
 	}
 
 	@Override

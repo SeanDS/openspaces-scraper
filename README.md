@@ -1,5 +1,5 @@
 Ordnance Survey OpenSpaces Scraper
-==================
+==================================
 
 Program to extract Ordnance Survey (OS) map tiles using an OS OpenSpaces API key and stitch together custom maps.
 
@@ -15,12 +15,12 @@ This program was written by two hill walkers who wished to be able to stitch tog
 Notes
 -----
 
-The program is more or less complete. A known bug remains with incorrect API keys: if you use an invalid API key or an API key not registered to your domain/IP address, the program throws an exception (and crashes). This is an easy fix which I might make one day, but for now, just know that you should use a correct API key. For the purposes of testing, you may wish to use the API key '6694613F8B469C97E0405F0AF160360A', which is the one used by the map viewer on the OS OpenSpaces website. Don't use this for your own archiving, just as a test.
+The program is more or less complete. To use it, you need an OS OpenSpaces API key - try Googling it. This is a key which you register for your own domain or IP address. For the purposes of testing, you may wish to use the API key '6694613F8B469C97E0405F0AF160360A', which is the one used by the map viewer on the OS OpenSpaces website. Don't use this for your own archiving, just as a test.
 
 Authors
 -------
 
-This was written over a rainy weekend in summer 2011 by Sean Leavey and Ewan Gunn. Direct comments to Sean (and compaints to Ewan).
+This was mainly written over a rainy weekend in summer 2011 by Sean Leavey and Ewan Gunn. Direct comments to Sean (and compaints to Ewan).
 
 Sean Leavey
 https://github.com/SeanDS/

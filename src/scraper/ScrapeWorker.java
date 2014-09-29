@@ -1,6 +1,6 @@
 package scraper;
 
-import gui.ButtonEnabler;
+import gui.ScrapeGUIInteractor;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -27,14 +27,17 @@ public class ScrapeWorker implements Runnable
 	private int height;
 	private File archiveDirectory;
 	private BufferedImage image = null;
-	private ButtonEnabler callback;
+	private ScrapeGUIInteractor callback;
 
 	// This defines whether the worker is stopped or not, to allow the GUI stop button to stop
 	// the operation mid way through
 	private boolean isStopped = false;
+	private int stoppedReason = 0;
+	
+	public final static int REASON_UNABLE_TO_CONNECT = 1;
 	
 	public ScrapeWorker(String key, File imageFile, File archiveDirectory, AbstractGridReference targetReference, int xTiles,
-			int yTiles, int layers, int width, int height, ButtonEnabler callback)
+			int yTiles, int layers, int width, int height, ScrapeGUIInteractor callback)
 	{
 		this.key = key;
 		this.imageFile = imageFile;
@@ -55,6 +58,8 @@ public class ScrapeWorker implements Runnable
 		
 		int scrapeCount = 0;
 		int readCount = 0;
+		
+		boolean unableToConnect = false;
 		
 		// Check that we are still to proceed
 		if(!isStopped)
@@ -121,30 +126,42 @@ public class ScrapeWorker implements Runnable
 							// Scrape the image
 							System.out.println("Scraping and archiving image " + currentImageNumber + " of "
 									+ totalNumberOfImages + "...");
-							tile = scrapeImage(tileTargetReference, key);
 							
-							File layerFolder = new File(archiveDirectory.getAbsoluteFile() + File.separator + layers);
-							
-							// Check if layer folder exists, and if not, create it
-							if(!layerFolder.exists())
-							{
-								// Create layer folder
-								layerFolder.mkdir();
-							}
-							
-							// Save the image to the archives
 							try
 							{
-								ImageIO.write(tile, "png", tileFile);
-								scrapeCount++;
-								//Thread.sleep(1000);
+								tile = scrapeImage(tileTargetReference, key);
 							}
-							catch(IOException e)
+							catch(UnableToConnectException e)
 							{
-								e.printStackTrace();
-							} /*catch (InterruptedException e) {
-								e.printStackTrace();
-								}*/
+								this.setStopped(true);
+								this.setStoppedReason(ScrapeWorker.REASON_UNABLE_TO_CONNECT);
+							}
+							
+							if(!isStopped)
+							{
+								File layerFolder = new File(archiveDirectory.getAbsoluteFile() + File.separator + layers);
+								
+								// Check if layer folder exists, and if not, create it
+								if(!layerFolder.exists())
+								{
+									// Create layer folder
+									layerFolder.mkdir();
+								}
+								
+								// Save the image to the archives
+								try
+								{
+									ImageIO.write(tile, "png", tileFile);
+									scrapeCount++;
+									//Thread.sleep(1000);
+								}
+								catch(IOException e)
+								{
+									e.printStackTrace();
+								} /*catch (InterruptedException e) {
+									e.printStackTrace();
+									}*/
+							}
 						}
 						// Else retrieve the tile from the archives, as long as we actually want to make an image
 						// (imageFile will be null if the user wishes not to make a stitched image)
@@ -167,11 +184,15 @@ public class ScrapeWorker implements Runnable
 						System.out.println("	Done");
 		
 						// Check if image file is null, i.e. whether user wishes to save a stitched image
-						if(imageFile != null)
+						if(imageFile != null && !isStopped)
 						{
 							// Add the tile to the overall image
 							image.createGraphics().drawImage(tile, n1 * width, imageSizeY - (n2 + 1) * height, null);
 						}
+					}
+					else
+					{
+						break;
 					}
 				}
 			}
@@ -204,6 +225,11 @@ public class ScrapeWorker implements Runnable
 		if(isStopped)
 		{
 			System.out.println("Operation stopped.");
+			
+			if(stoppedReason == ScrapeWorker.REASON_UNABLE_TO_CONNECT)
+			{
+				callback.messageUnableToConnect();
+			}
 		}
 		
 		System.out.println(scrapeCount + " new tiles were archived.");
@@ -211,7 +237,7 @@ public class ScrapeWorker implements Runnable
 		callback.enableButtons();
 	}
 
-	private BufferedImage scrapeImage(AbstractGridReference target, String key)
+	private BufferedImage scrapeImage(AbstractGridReference target, String key) throws UnableToConnectException
 	{
 		BufferedImage scrapedImage = null;
 		
@@ -253,15 +279,26 @@ public class ScrapeWorker implements Runnable
 			connection.setRequestProperty("Referer", "http://osopenspacewiki.ordnancesurvey.co.uk/wiki/index.php?title=Basic_Map");
 			
 			// Get image
-			scrapedImage = ImageIO.read(connection.getInputStream());
+			try
+			{
+				scrapedImage = ImageIO.read(connection.getInputStream());
+				
+			}
+			catch(IOException e)
+			{
+				System.err.println("A connection to the Ordnance Survey website was unable to be made.");
+				e.printStackTrace();
+				
+				throw new UnableToConnectException();
+			}
 		}
 		catch(IOException e)
 		{
 			// Dump details to the console
-			System.err.println("A connection to the Ordnance Survey website was unable to be made.");
+			System.err.println("Malformed URL");
 			e.printStackTrace();
-			System.err.println("Exiting program");
-			System.exit(0);
+			
+			return null;
 		}
 		
 		return scrapedImage;
@@ -275,5 +312,10 @@ public class ScrapeWorker implements Runnable
 	public void setStopped(boolean stopped)
 	{
 		this.isStopped = stopped;
+	}
+	
+	public void setStoppedReason(int reason)
+	{
+		this.stoppedReason = reason;
 	}
 }
